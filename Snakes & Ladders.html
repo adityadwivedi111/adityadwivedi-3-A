@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snakes &amp; Ladders</title>
+<style>
+:root{--bg:#f3efe6;--fg:#201d18;--card:#fffdf8;--line:#ddd5c5;--s1:#f7e7b8;--s2:#e9c98a;--ac:#2f6b4f;--on:#fff;--muted:#6f675a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1916;--fg:#ece7dc;--card:#262420;--line:#3b3731;--s1:#4a4231;--s2:#3b3426;--ac:#6fbf95;--on:#10261a;--muted:#a59d8e}}
+:root[data-theme="dark"]{--bg:#1a1916;--fg:#ece7dc;--card:#262420;--line:#3b3731;--s1:#4a4231;--s2:#3b3426;--ac:#6fbf95;--on:#10261a;--muted:#a59d8e}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{--sz:min(94vw,62vh,540px);display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 8px 28px}
+h1{margin:0;font-size:22px;font-weight:650}
+button{font:inherit;cursor:pointer;color:var(--fg)}
+.btn{padding:9px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:15px}
+.btn.pri{background:var(--ac);color:var(--on);border-color:var(--ac);font-weight:600}
+.btn:disabled{opacity:.45;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+#setup{width:min(94vw,420px);display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px}
+.dot{width:18px;height:18px;border-radius:50%;flex:none;box-shadow:inset 0 -3px 4px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.4)}
+.seg{display:flex;gap:6px}.seg .btn{padding:6px 12px}.seg .on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+#game{display:none;flex-direction:column;align-items:center;gap:12px}
+#bw{position:relative;width:var(--sz);margin-bottom:calc(var(--sz)*.09)}
+#board{display:grid;grid-template-columns:repeat(10,1fr);width:var(--sz);aspect-ratio:1;border-radius:8px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.28);border:3px solid #7a5a35}
+.sq{position:relative;font-size:calc(var(--sz)/50);padding:2px 3px;color:rgba(60,45,20,.7);font-weight:600}
+.sq:nth-child(odd){background:var(--s1)}
+#board.alt .sq:nth-child(odd){background:var(--s2)}
+.sq.a{background:var(--s1)}.sq.b{background:var(--s2)}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#start{position:absolute;left:0;right:0;top:101.5%;height:7%;border-radius:8px;background:var(--card);border:1px dashed var(--line);font-size:11px;color:var(--muted);display:flex;align-items:center;padding-left:8px;box-sizing:border-box}
+#tok{position:absolute;inset:0;pointer-events:none}
+.tk{position:absolute;width:5.2%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease;box-shadow:inset 0 -4px 5px rgba(0,0,0,.35),inset 0 3px 3px rgba(255,255,255,.5),0 3px 5px rgba(0,0,0,.45);border:1.5px solid rgba(255,255,255,.7);box-sizing:border-box}
+.tk.slide{transition:left .8s cubic-bezier(.5,0,.3,1),top .8s cubic-bezier(.5,0,.3,1)}
+.tk.me{animation:bob .8s infinite ease-in-out}
+@keyframes bob{50%{margin-top:-1.4%}}
+#panel{width:var(--sz);display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+#dice{width:76px;height:76px;border-radius:14px;background:#fff;border:1px solid #cfc8b8;box-shadow:0 4px 0 #bdb5a3,0 8px 14px rgba(0,0,0,.25);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11px;box-sizing:border-box;cursor:pointer;transition:transform .08s}
+#dice.roll{animation:tumble .5s linear infinite}
+@keyframes tumble{to{transform:rotate(360deg) scale(1.08)}}
+.pip{width:15px;height:15px;border-radius:50%;background:#222;place-self:center;visibility:hidden;box-shadow:inset 0 2px 2px rgba(255,255,255,.35)}
+.pip.v{visibility:visible}
+#turn{font-size:18px;font-weight:650}
+#msg{font-size:14px;color:var(--muted);min-height:20px;margin-top:2px}
+#chips{width:var(--sz);display:flex;flex-wrap:wrap;gap:8px}
+.chip{flex:1 1 40%;display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:14px}
+.chip.cur{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac)}
+.chip b{margin-left:auto;font-variant-numeric:tabular-nums}
+#log{width:var(--sz);box-sizing:border-box;max-height:96px;overflow:auto;font-size:13px;line-height:1.6;color:var(--muted)}
+#win{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
+#win .card{text-align:center;display:flex;flex-direction:column;gap:12px;min-width:240px}
+.cf{position:fixed;top:-12px;width:9px;height:14px;animation:fall linear forwards;z-index:10}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style></head>
+<body><div id="app">
+<h1>Snakes &amp; Ladders</h1>
+<div id="setup" class="card">
+ <div style="font-weight:600">Players</div>
+ <div class="seg" id="cnt"></div>
+ <div id="plist" style="display:flex;flex-direction:column;gap:8px"></div>
+ <button class="btn pri" id="go">Start game</button>
+ <div style="font-size:13px;color:var(--muted)">Roll the dice and climb ladders, slide down snakes. Land exactly on 100 to win. A six gives you another turn.</div>
+</div>
+<div id="game">
+ <div id="bw"><div id="board"></div><svg id="fx" viewBox="0 0 100 100"></svg><div id="tok"></div><div id="start">Start</div></div>
+ <div id="panel" class="card" style="box-sizing:border-box">
+  <div id="dice" title="Tap to roll"></div>
+  <div><div id="turn"></div><div id="msg"></div>
+   <div style="display:flex;gap:8px;margin-top:8px"><button class="btn pri" id="roll">Roll dice</button><button class="btn" id="snd">Sound on</button></div></div>
+ </div>
+ <div id="chips"></div>
+ <div id="log" class="card"></div>
+ <button class="btn" id="quit">New game</button>
+</div>
+<div id="win"><div class="card"><div style="font-size:42px">🏆</div><div id="wt" style="font-size:20px;font-weight:700"></div><button class="btn pri" id="again">Play again</button><button class="btn" id="back">Change players</button></div></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const LAD={3:22,8:30,21:42,28:84,36:44,51:67,71:91,78:98};
+const SNK={17:7,54:34,62:19,64:60,87:24,93:73,95:75,99:80};
+const JUMP={...LAD,...SNK};
+const COLORS=['#e5484d','#3b82f6','#22a559','#f5a524'],NAMES=['Red','Blue','Green','Gold'];
+let cfg={n:2,cpu:[false,true,true,true]},P=[],turn=0,busy=false,over=false,sound=true,AC=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const XY=n=>{const r=Math.floor((n-1)/10),c=r%2?9-(n-1)%10:(n-1)%10;return[(c+.5)*10,(9-r+.5)*10]};
+
+/* sound */
+function tone(f,d=.1,type='sine',v=.08,at=0){if(!sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+at;o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const sfx={step:()=>tone(520,.07,'triangle'),roll:()=>tone(180+Math.random()*120,.05,'square',.04),up:()=>[523,659,784,1046].forEach((f,i)=>tone(f,.15,'triangle',.09,i*.09)),down:()=>[600,480,360,220].forEach((f,i)=>tone(f,.17,'sawtooth',.06,i*.1)),win:()=>[523,659,784,1046,1318].forEach((f,i)=>tone(f,.25,'triangle',.1,i*.12))};
+
+/* setup */
+function drawSetup(){
+ $('#cnt').innerHTML='';
+ [2,3,4].forEach(n=>{const b=document.createElement('button');b.className='btn'+(cfg.n==n?' on':'');b.textContent=n+' players';b.onclick=()=>{cfg.n=n;drawSetup()};$('#cnt').append(b)});
+ const pl=$('#plist');pl.innerHTML='';
+ for(let i=0;i<cfg.n;i++){const r=document.createElement('div');r.className='row';
+  r.innerHTML=`<span class="dot" style="background:${COLORS[i]}"></span><span style="flex:1">${NAMES[i]}</span>`;
+  const s=document.createElement('div');s.className='seg';
+  [['Human',false],['Computer',true]].forEach(([t,v])=>{const b=document.createElement('button');b.className='btn'+(cfg.cpu[i]==v?' on':'');b.textContent=t;b.onclick=()=>{cfg.cpu[i]=v;drawSetup()};s.append(b)});
+  r.append(s);pl.append(r)}
+}
+
+/* board */
+function buildBoard(){
+ const b=$('#board');b.innerHTML='';
+ for(let r=9;r>=0;r--)for(let c=0;c<10;c++){const n=r*10+(r%2?10-c:c+1);const d=document.createElement('div');d.className='sq '+((r+c)%2?'a':'b');d.textContent=n;b.append(d)}
+ let s='';
+ for(const[a,z]of Object.entries(LAD)){const[x1,y1]=XY(+a),[x2,y2]=XY(z),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),nx=-dy/L*1.3,ny=dx/L*1.3;
+  s+=`<g stroke-linecap="round"><line x1="${x1+nx}" y1="${y1+ny}" x2="${x2+nx}" y2="${y2+ny}" stroke="#7a4b1d" stroke-width="1"/><line x1="${x1-nx}" y1="${y1-ny}" x2="${x2-nx}" y2="${y2-ny}" stroke="#7a4b1d" stroke-width="1"/>`;
+  const k=Math.floor(L/3.6);for(let i=1;i<k;i++){const t=i/k,px=x1+dx*t,py=y1+dy*t;s+=`<line x1="${px+nx}" y1="${py+ny}" x2="${px-nx}" y2="${py-ny}" stroke="#b9803c" stroke-width=".9"/>`}s+='</g>'}
+ const cols=['#2e9e55','#d1493f','#7a4fc2','#e08a1e','#1f8ea3','#b8326b','#5b8c1f','#c2623a'];let i=0;
+ for(const[a,z]of Object.entries(SNK)){const[x1,y1]=XY(+a),[x2,y2]=XY(z),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),nx=-dy/L,ny=dx/L,col=cols[i++%cols.length],o=L*.22;
+  const d=`M${x1} ${y1} C${x1+dx*.25+nx*o} ${y1+dy*.25+ny*o} ${x1+dx*.75-nx*o} ${y1+dy*.75-ny*o} ${x2} ${y2}`;
+  s+=`<g stroke-linecap="round" fill="none"><path d="${d}" stroke="rgba(0,0,0,.25)" stroke-width="2.9" transform="translate(.4 .5)"/><path d="${d}" stroke="${col}" stroke-width="2.6"/><path d="${d}" stroke="rgba(255,255,255,.55)" stroke-width="1.1" stroke-dasharray=".1 2.2"/></g>
+  <circle cx="${x1}" cy="${y1}" r="2.1" fill="${col}"/><circle cx="${x1-.7}" cy="${y1-.6}" r=".5" fill="#fff"/><circle cx="${x1+.7}" cy="${y1-.6}" r=".5" fill="#fff"/><circle cx="${x1-.7}" cy="${y1-.6}" r=".22" fill="#111"/><circle cx="${x1+.7}" cy="${y1-.6}" r=".22" fill="#111"/><path d="M${x1} ${y1+2} l-.5 1.4 M${x1} ${y1+2} l.5 1.4" stroke="#d11" stroke-width=".3"/>`}
+ $('#fx').innerHTML=s;
+}
+function place(i,slide){
+ const p=P[i],t=p.el,off=[[-1.5,-1.5],[1.5,-1.5],[-1.5,1.5],[1.5,1.5]][i];
+ let x,y;if(p.pos==0){x=8+i*7;y=105}else{[x,y]=XY(p.pos);x+=off[0];y+=off[1]}
+ t.classList.toggle('slide',!!slide);t.style.left=x+'%';t.style.top=y+'%'}
+
+/* dice */
+const dice=$('#dice');for(let i=0;i<9;i++)dice.append(Object.assign(document.createElement('span'),{className:'pip'}));
+const FACE={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const show=n=>[...dice.children].forEach((p,i)=>p.classList.toggle('v',FACE[n].includes(i)));
+
+/* UI */
+function ui(){
+ const p=P[turn];
+ $('#turn').innerHTML=over?'Game over':`<span class="dot" style="display:inline-block;vertical-align:-3px;background:${p.color};margin-right:8px"></span>${p.cpu?p.name+' (computer)':p.name+'’s turn'}`;
+ $('#roll').disabled=busy||over||p.cpu;
+ dice.style.pointerEvents=$('#roll').disabled?'none':'auto';
+ $('#chips').innerHTML=P.map((q,i)=>`<div class="chip${i==turn&&!over?' cur':''}"><span class="dot" style="background:${q.color}"></span>${q.name}<b>${q.pos||'—'}</b></div>`).join('');
+ P.forEach((q,i)=>q.el.classList.toggle('me',i==turn&&!over));
+}
+const say=(m,log=true)=>{$('#msg').textContent=m;if(log){const l=$('#log');l.append(Object.assign(document.createElement('div'),{textContent:m}));l.scrollTop=l.scrollHeight}};
+
+function start(){
+ P=[];$('#tok').innerHTML='';$('#log').innerHTML='';
+ for(let i=0;i<cfg.n;i++){const el=document.createElement('div');el.className='tk';el.style.background=`radial-gradient(circle at 35% 30%,#fff8,${COLORS[i]} 55%)`;$('#tok').append(el);P.push({name:NAMES[i],color:COLORS[i],cpu:cfg.cpu[i],pos:0,el})}
+ turn=0;busy=false;over=false;P.forEach((_,i)=>place(i));show(1);
+ $('#setup').style.display='none';$('#game').style.display='flex';$('#win').style.display='none';
+ say('Roll the dice to begin!',false);ui();next();
+}
+function next(){if(!over&&P[turn].cpu)setTimeout(roll,1000)}
+
+async function roll(){
+ if(busy||over)return;busy=true;ui();
+ if(AC&&AC.state=='suspended')AC.resume();
+ dice.classList.add('roll');
+ for(let i=0;i<9;i++){show(1+Math.floor(Math.random()*6));sfx.roll();await sleep(75)}
+ dice.classList.remove('roll');
+ const r=1+Math.floor(Math.random()*6);show(r);
+ const p=P[turn],i=turn;await sleep(250);
+ if(p.pos+r>100){say(`${p.name} rolled ${r} — needs exactly ${100-p.pos} to finish.`)}
+ else{say(`${p.name} rolled ${r}.`);
+  for(let k=0;k<r;k++){p.pos++;place(i);sfx.step();await sleep(240)}
+  const j=JUMP[p.pos];
+  if(j){const up=j>p.pos;say(up?`🪜 ${p.name} climbs a ladder to ${j}!`:`🐍 Snake! ${p.name} slides down to ${j}.`);(up?sfx.up:sfx.down)();await sleep(250);p.pos=j;place(i,true);await sleep(900);place(i)}
+ }
+ if(p.pos==100){over=true;ui();sfx.win();win(p);busy=false;return}
+ if(r==6&&p.pos+0<=100){say(`${p.name} rolled a six — roll again!`)}else turn=(turn+1)%P.length;
+ busy=false;ui();next();
+}
+function win(p){
+ $('#wt').textContent=`${p.name} wins!`;say(`🏆 ${p.name} reached 100!`);
+ setTimeout(()=>{$('#win').style.display='flex';for(let i=0;i<60;i++){const c=document.createElement('div');c.className='cf';c.style.cssText=`left:${Math.random()*100}vw;background:${COLORS[i%4]};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.6}s`;document.body.append(c);setTimeout(()=>c.remove(),5000)}},600);
+}
+$('#roll').onclick=roll;dice.onclick=roll;
+$('#go').onclick=start;$('#again').onclick=start;
+$('#back').onclick=$('#quit').onclick=()=>{over=true;$('#win').style.display='none';$('#game').style.display='none';$('#setup').style.display='flex'};
+$('#snd').onclick=e=>{sound=!sound;e.target.textContent=sound?'Sound on':'Sound off'};
+drawSetup();buildBoard();show(1);
+</script></body></html>

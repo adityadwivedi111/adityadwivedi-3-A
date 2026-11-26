@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Random Jokes</title>
+<style>
+:root{--bg:#fff7e6;--fg:#241c0f;--card:#ffffff;--line:#efe2c4;--ac:#e8590c;--on:#fff;--muted:#7a6a4f;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17130d;--fg:#f4ead6;--card:#231d13;--line:#3a3022;--ac:#ff922b;--on:#2a1500;--muted:#b3a487}}
+:root[data-theme="dark"]{--bg:#17130d;--fg:#f4ead6;--card:#231d13;--line:#3a3022;--ac:#ff922b;--on:#2a1500;--muted:#b3a487}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center}
+main{width:min(94vw,640px);padding:28px 0 40px;display:flex;flex-direction:column;gap:18px}
+header{text-align:center}
+h1{margin:0;font-size:clamp(26px,6vw,36px)}
+header p{margin:6px 0 0;color:var(--muted)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+select,button{font:inherit;font-size:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:10px 14px;cursor:pointer}
+button.pri{background:var(--ac);color:var(--on);border-color:var(--ac);font-weight:650}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 22px;min-height:150px;box-shadow:0 6px 24px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:14px;justify-content:center}
+.tag{align-self:flex-start;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.setup{font-size:clamp(20px,4.5vw,26px);line-height:1.35;font-weight:600;margin:0}
+.punch{font-size:clamp(20px,4.5vw,26px);line-height:1.35;margin:0;color:var(--ac);font-weight:650;animation:pop .35s ease}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.msg{color:var(--muted);text-align:center}
+.err{color:#d6336c}
+h2{font-size:15px;margin:6px 0 0;color:var(--muted);font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.45;cursor:pointer}
+li span{color:var(--ac)}
+footer{text-align:center;font-size:12px;color:var(--muted)}
+</style></head>
+<body><main>
+<header><h1>😂 Random Jokes</h1><p>Fresh jokes fetched live from a public API.</p></header>
+<div class="controls">
+ <select id="cat" aria-label="Joke category">
+  <option value="Any">Any category</option><option>Programming</option><option>Misc</option><option>Pun</option><option>Spooky</option><option>Christmas</option>
+ </select>
+ <button class="pri" id="next">Tell me a joke</button>
+</div>
+<section class="card" id="card" aria-live="polite"><div class="msg">Press the button to get your first joke.</div></section>
+<div class="msg" style="font-size:13px">Tip: press <b>Space</b> for another joke.</div>
+<h2 id="hh" hidden>Previous jokes (tap to view again)</h2>
+<ul id="hist"></ul>
+<footer>Jokes by <a href="https://v2.jokeapi.dev" target="_blank" rel="noopener" style="color:inherit">JokeAPI</a> (with Official Joke API as backup). Safe mode is on.</footer>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const card=$('#card'),btn=$('#next'),hist=[];
+const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+
+async function getJSON(url){
+  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),8000);
+  try{const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
+  finally{clearTimeout(t)}
+}
+async function fetchJoke(cat){
+  try{
+    const d=await getJSON(`https://v2.jokeapi.dev/joke/${cat}?safe-mode&blacklistFlags=nsfw,religious,political,racist,sexist,explicit`);
+    if(d.error)throw new Error(d.message||'API error');
+    return d.type==='single'?{tag:d.category,setup:d.joke,punch:''}:{tag:d.category,setup:d.setup,punch:d.delivery};
+  }catch(e){
+    const d=await getJSON('https://official-joke-api.appspot.com/random_joke');
+    return{tag:d.type||'general',setup:d.setup,punch:d.punchline};
+  }
+}
+function showJoke(j){
+  card.replaceChildren(el('span','tag',j.tag),el('p','setup',j.setup));
+  if(!j.punch)return addActions(j);
+  const reveal=el('button','pri','Reveal punchline');
+  reveal.onclick=()=>{reveal.replaceWith(el('p','punch',j.punch));addActions(j)};
+  card.append(reveal);
+}
+function addActions(j){
+  const a=el('div','actions'),text=j.punch?`${j.setup}\n${j.punch}`:j.setup;
+  const copy=el('button',null,'Copy');
+  copy.onclick=async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Copied ✓'}catch(e){copy.textContent='Copy failed'}setTimeout(()=>copy.textContent='Copy',1800)};
+  a.append(copy);
+  if(navigator.share){const s=el('button',null,'Share');s.onclick=()=>navigator.share({text}).catch(()=>{});a.append(s)}
+  card.append(a);
+}
+function addHistory(j){
+  hist.unshift(j);if(hist.length>8)hist.pop();
+  const ul=$('#hist');ul.replaceChildren();$('#hh').hidden=false;
+  hist.forEach(h=>{const li=el('li');li.append(el('span',null,h.setup));if(h.punch)li.append(document.createTextNode(' — '+h.punch));li.onclick=()=>{showJoke(h);if(h.punch)card.querySelector('button.pri')?.click()};ul.append(li)});
+}
+async function next(){
+  btn.disabled=true;card.replaceChildren(el('div','msg','Finding something funny…'));
+  try{const j=await fetchJoke($('#cat').value);showJoke(j);addHistory(j)}
+  catch(e){card.replaceChildren(el('div','msg err','Couldn’t load a joke. Check your internet connection and try again.'))}
+  btn.disabled=false;
+}
+btn.onclick=next;
+addEventListener('keydown',e=>{if(e.code==='Space'&&!['SELECT','BUTTON'].includes(document.activeElement.tagName)){e.preventDefault();next()}});
+</script></body></html>

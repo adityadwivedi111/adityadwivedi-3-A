@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>To-Do List</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background-color: lightblue;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .container {
+            background: white;
+            width: 400px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        input {
+            padding: 10px;
+            width: 60%;
+        }
+
+        button {
+            padding: 8px;
+            margin: 3px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .add {
+            background: green;
+            color: white;
+        }
+
+        .delete {
+            background: red;
+            color: white;
+        }
+
+        .up, .down {
+            background: orange;
+        }
+
+        li {
+            list-style: none;
+            background: lightgray;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+        }
+
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>My To-Do List</h1>
+
+        <input type="text" id="taskInput"
+               placeholder="Enter a task">
+
+        <button class="add" onclick="addTask()">Add</button>
+
+        <ul id="taskList"></ul>
+
+    </div>
+
+    <script>
+
+        function addTask() {
+            let input = document.getElementById("taskInput");
+            let task = input.value.trim();
+
+            if (task === "") {
+                alert("Please enter a task!");
+                return;
+            }
+
+            let li = document.createElement("li");
+
+            let checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+
+            let span = document.createElement("span");
+            span.innerText = task;
+
+            checkbox.onchange = function() {
+                span.classList.toggle("completed", checkbox.checked);
+            };
+
+            let delBtn = document.createElement("button");
+            delBtn.innerText = "Delete";
+            delBtn.className = "delete";
+
+            delBtn.onclick = function() {
+                li.remove();
+            };
+
+            let upBtn = document.createElement("button");
+            upBtn.innerText = "Up";
+            upBtn.className = "up";
+
+            upBtn.onclick = function() {
+                if (li.previousElementSibling) {
+                    li.parentNode.insertBefore(
+                        li, li.previousElementSibling
+                    );
+                }
+            };
+
+            let downBtn = document.createElement("button");
+            downBtn.innerText = "Down";
+            downBtn.className = "down";
+
+            downBtn.onclick = function() {
+                if (li.nextElementSibling) {
+                    li.parentNode.insertBefore(
+                        li.nextElementSibling, li
+                    );
+                }
+            };
+
+            li.appendChild(checkbox);
+            li.appendChild(span);
+            li.appendChild(upBtn);
+            li.appendChild(downBtn);
+            li.appendChild(delBtn);
+
+            document.getElementById("taskList").appendChild(li);
+
+            input.value = "";
+        }
+
+    </script>
+
+</body>
+</html>
